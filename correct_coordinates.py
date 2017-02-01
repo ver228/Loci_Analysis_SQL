@@ -7,7 +7,6 @@ Created on Tue Oct 20 21:25:08 2015
 import os
 import sqlite3 as sq
 import numpy as np
-import matplotlib.pylab as plt
 from scipy.io import loadmat
 
 #coord_root_dir = '/Volumes/MyPassport/Data/Tracking_Results/Results'
@@ -16,7 +15,6 @@ from scipy.io import loadmat
 
 coord_root_dir = '/Volumes/WormData/Loci_data/Tracking_Results/Results/'
 database_file = '/Volumes/WormData/Loci_data/Tracking_Results/loci_data.db'
-
 
 
 bad_files = []
