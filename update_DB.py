@@ -125,8 +125,8 @@ CREATE TABLE IF NOT EXISTS `particles` (
 CREATE TABLE IF NOT EXISTS `coordinates` (
   `particle_id` int(11) NOT NULL ,
   `video_frame` int(11) NOT NULL,
-  `x` float DEFAULT NULL,
-  `y` float DEFAULT NULL,
+  `x_raw` float DEFAULT NULL,
+  `y_raw` float DEFAULT NULL,
   `x_dedrift` float DEFAULT NULL,
   `y_dedrift` float DEFAULT NULL,
   `signal` float DEFAULT NULL,
@@ -432,7 +432,7 @@ def _insert_video_coord(conn, cur, root_dir, video_id):
     VALUES (?,?,?)''', particles_to_insert)
     
     cur.executemany('''
-    INSERT INTO `coordinates` (particle_id, video_frame, x, y, x_dedrift, y_dedrift, signal, background) 
+    INSERT INTO `coordinates` (particle_id, video_frame, x_raw, y_raw, x_dedrift, y_dedrift, signal, background) 
     VALUES (?,?,?,?,?,?,?,?)''', coordinates_to_insert)
     conn.commit()
     
@@ -656,7 +656,7 @@ if __name__ == '__main__':
     root_dir = '/Volumes/WormData/Loci_data/Tracking_Results/'
     
     
-    DB_path = os.path.join(root_dir, 'loci_data_new2.db')
+    DB_path = os.path.join(root_dir, 'loci_data_new.db')
     DB_path_old = os.path.join(root_dir, 'loci_data.db')
     
 #    initialize_db(DB_path)
