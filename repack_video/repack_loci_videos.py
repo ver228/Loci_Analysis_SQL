@@ -16,6 +16,8 @@ import glob
 import scipy.io
 import tqdm
 
+is_debug = False
+
 TABLE_FILTERS = tables.Filters(
         complevel=5,
         complib='zlib',
@@ -56,7 +58,7 @@ def _add_header_info(dataset, header):
 def _process_directory(main_dir):
     dnames = os.listdir(main_dir)
     
-    loci_dnames = [x for x in dnames if x.startswith('Before')]
+    loci_dnames = [x for x in dnames if x.startswith('Before') or x.startswith('After')]
     phc_dir = os.path.join(main_dir, 'PhC')
     
     
@@ -65,11 +67,12 @@ def _process_directory(main_dir):
     
     for loci_dname in loci_dnames:
         loci_dname_f = os.path.join(main_dir, loci_dname)
-        if not os.path.isdir(loci_dname_f):
+        if not os.path.isdir(loci_dname_f) or not loci_dname_f.endswith('_Fluo'):
             continue
         
         
         save_name = loci_dname_f.replace('_Fluo', '.hdf5')
+        
         #save_name = os.path.join(main_dir, pos + '.hdf5')
         if os.path.exists(save_name):
             try:
@@ -78,17 +81,28 @@ def _process_directory(main_dir):
             except (tables.exceptions.NoSuchNodeError):
                 pass
             except:
-                raise
-        
-        
-        with tables.File(save_name, 'w') as fid:
-            fnames = os.listdir(loci_dname_f)
-            img_files = [x for x in fnames if x.endswith('.tif')]
-            remainder_files = [x for x in fnames if not x.endswith('.tif')]
-            assert remainder_files == ['header.mat']
+                if is_debug:
+                    import pdb
+                    pdb.set_trace()
+                    raise
+                else:
+                    continue
             
-            header = _read_header(os.path.join(loci_dname_f, 'header.mat'))
-            images = _read_img_list(loci_dname_f, img_files, desc = loci_dname)
+        
+        
+        fnames = os.listdir(loci_dname_f)
+        img_files = [x for x in fnames if x.endswith('.tif')]
+        if len(img_files) == 0:
+            continue
+        
+        images = _read_img_list(loci_dname_f, img_files, desc = loci_dname)
+        
+        if any(x is None for x in images):
+            continue
+        
+        print(save_name)
+        with tables.File(save_name, 'w') as fid:
+            
             
             gg = fid.create_carray(
                     '/',
@@ -96,7 +110,20 @@ def _process_directory(main_dir):
                     obj=images,
                     chunkshape = (1, *images.shape[1:]),
                     filters=TABLE_FILTERS)
-            _add_header_info(gg, header)
+            
+            
+            remainder_files = [x for x in fnames if not x.endswith('.tif')]
+            if remainder_files:
+                if not 'header.mat' in remainder_files:
+                    print(remainder_files)
+                    if is_debug:
+                        import pdb
+                        pdb.set_trace()
+                        raise ValueError
+                    else:
+                        continue
+                header = _read_header(os.path.join(loci_dname_f, 'header.mat'))
+                _add_header_info(gg, header)
             
             
             phc_files = glob.glob(os.path.join(phc_dir, loci_dname.replace('_Fluo', '*.tif')))
@@ -105,6 +132,10 @@ def _process_directory(main_dir):
                 img = cv2.imread(fname, -1)
                 
                 ch_str = fname.rpartition('_')[-1][:-4]
+                
+                if ch_str == 'Fluo':
+                    ch_str = ch_str + '_single'
+                
                 gg = fid.create_carray(
                     '/',
                     ch_str,
@@ -115,17 +146,36 @@ def _process_directory(main_dir):
             
             fid.get_node('/Fluo')._v_attrs['has_finished'] = 1
         
-        #remove processed files
-        shutil.rmtree(loci_dname_f)
-        for fname in phc_files:
-            hname = fname.replace('.tif', '_header.mat')
-            os.remove(fname)
-            os.remove(hname)
+            #remove processed files
+            
+            if remainder_files == ['header.mat']:
+                shutil.rmtree(loci_dname_f)
+            else:
+                files2remove = [os.path.join(loci_dname_f,x) for x in img_files]
+                files2remove.append(os.path.join(loci_dname_f, 'header.mat'))
+                #do not remove the whole directory only the processed files
+                for fname in files2remove:
+                    os.remove(fname)
+                    
+                
+            for fname in phc_files:
+                hname = fname.replace('.tif', '_header.mat')
+                os.remove(fname)
+                
+                if os.path.exists(hname):
+                    os.remove(hname)
 
 if __name__ == '__main__':
-    root_dir = '/Volumes/NTFS/Nikon/'
+    #root_dir = '/Volumes/NTFS/Nikon/'
+    root_dir = '/run/media/ajaver/Loci II/Nikon/'
+    #not very nice but faster
+    #dnames = [x for x in glob.glob(os.path.join(root_dir, '*', '*', '*')) if os.path.isdir(x)]
+    #dnames = [x for x in glob.glob(os.path.join(root_dir, '*',  '*')) if os.path.isdir(x)]
+    
+    root_dir = '/run/media/ajaver/Loci I/Nikon/'
     dnames = [x for x in glob.glob(os.path.join(root_dir, '*', '*', '*')) if os.path.isdir(x)]
     
+    #%%
     for dname in dnames[::-1]:
         print(dname)
         _process_directory(os.path.join(root_dir, dname))
