@@ -175,10 +175,12 @@ if __name__ == '__main__':
     #root_dir = '/run/media/ajaver/Loci II/TnaA Growth' 
     #root_dir = '/run/media/ajaver/Loci II/Nikon/Perturbations/Long Movies 271213' 
     #root_dir = '/run/media/ajaver/Loci II/Nikon/Perturbations/261213 Long Movies' 
-    root_dir = '/run/media/ajaver/Loci I/Nikon/First_Set/'
+    #root_dir = '/run/media/ajaver/Loci I/Nikon/First_Set/'
+    root_dir = '/run/media/ajaver/Loci I/Nikon/Forth_Set//Growth Data FM4-64/200113 CAA_B9_FM 30C/'
     
     dnames = os.listdir(root_dir)
     dnames = [x for x in dnames if not 'FixedCells' in x]
+    dnames = [x for x in dnames if not 'Raw' in x]
     
     dnames = [x for x in dnames if not x in ['20140402_MRR_Gly_I20000_Andor']]
     
@@ -193,7 +195,8 @@ if __name__ == '__main__':
                 _process_directory(os.path.join(root_dir, dname))
             except ValueError:
                 bad_files.append(dname)
-                print('?')
+                raise 
+                #print('?')
                 #continue
             break
     print(bad_files)
